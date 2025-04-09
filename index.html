@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scanner code-barres</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 20px 0 10px;
+    }
+
+    #scanner-container {
+      width: 100%;
+      max-width: 400px;
+      height: auto;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 0 15px rgba(0,255,150,0.3);
+    }
+
+    #product-info {
+      background: #222;
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 400px;
+      text-align: left;
+      box-shadow: 0 0 10px rgba(0,255,150,0.2);
+    }
+
+    #toggle-button {
+      margin: 20px;
+      padding: 10px 20px;
+      background: #00ff99;
+      border: none;
+      color: black;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Scanner Code-Barres</h1>
+  <div id="scanner-container"></div>
+
+  <div id="product-info">
+    <p><strong>Code :</strong> <span id="code">Aucun</span></p>
+    <p><strong>Nom :</strong> <span id="name">-</span></p>
+    <p><strong>Marque :</strong> <span id="brand">-</span></p>
+  </div>
+
+  <button id="toggle-button">Activer caméra</button>
+
+  <script src="https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js"></script>
+  <script>
+    const toggleButton = document.getElementById("toggle-button");
+    const codeSpan = document.getElementById("code");
+    const nameSpan = document.getElementById("name");
+    const brandSpan = document.getElementById("brand");
+
+    let isRunning = false;
+    let lastCode = null;
+    let cooldown = false;
+
+    function fetchProduct(code) {
+      fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 1) {
+            codeSpan.textContent = code;
+            nameSpan.textContent = data.product.product_name || "Inconnu";
+            brandSpan.textContent = data.product.brands || "Inconnue";
+          } else {
+            codeSpan.textContent = code;
+            nameSpan.textContent = "Produit introuvable";
+            brandSpan.textContent = "-";
+          }
+        }).catch(() => {
+          nameSpan.textContent = "Erreur de récupération";
+        });
+    }
+
+    function startScanner() {
+      Quagga.init({
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: document.querySelector("#scanner-container"),
+          constraints: {
+            facingMode: "environment"
+          }
+        },
+        decoder: {
+          readers: ["ean_reader", "ean_8_reader", "code_128_reader"]
+        },
+        locate: true
+      }, err => {
+        if (err) {
+          console.error(err);
+          alert("Impossible de démarrer la caméra. Vérifie les permissions et utilise HTTPS.");
+          return;
+        }
+        Quagga.start();
+        isRunning = true;
+        toggleButton.textContent = "Désactiver caméra";
+      });
+
+      Quagga.onDetected(result => {
+        const code = result.codeResult.code;
+        if (code && code !== lastCode && !cooldown) {
+          lastCode = code;
+          cooldown = true;
+          fetchProduct(code);
+          setTimeout(() => cooldown = false, 2000); // évite les doublons trop rapides
+        }
+      });
+    }
+
+    function stopScanner() {
+      Quagga.stop();
+      isRunning = false;
+      toggleButton.textContent = "Activer caméra";
+      codeSpan.textContent = "Aucun";
+      nameSpan.textContent = "-";
+      brandSpan.textContent = "-";
+    }
+
+    toggleButton.addEventListener("click", () => {
+      if (!isRunning) {
+        startScanner();
+      } else {
+        stopScanner();
+      }
+    });
+  </script>
+</body>
+</html>
