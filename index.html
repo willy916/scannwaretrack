@@ -1,150 +1,239 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Scanner code-barres</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
 
-    h1 {
-      margin: 20px 0 10px;
-    }
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/@zxing/browser@latest"></script>
 
-    #scanner-container {
-      width: 100%;
-      max-width: 400px;
-      height: auto;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 0 15px rgba(0,255,150,0.3);
-    }
+    <style>
+        .v-card {
+            height: 100vh;
+        }
 
-    #product-info {
-      background: #222;
-      margin-top: 20px;
-      padding: 15px;
-      border-radius: 10px;
-      width: 90%;
-      max-width: 400px;
-      text-align: left;
-      box-shadow: 0 0 10px rgba(0,255,150,0.2);
-    }
+        .scanner {
+            padding: 30px;
+            border-radius: 10px;
+            background-color: #e9ecef;
+            margin-block-end: 15px;
+            text-align: center;
+        }
 
-    #toggle-button {
-      margin: 20px;
-      padding: 10px 20px;
-      background: #00ff99;
-      border: none;
-      color: black;
-      font-weight: bold;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-  </style>
+        .product-img {
+            border-radius: 5px;
+            background-color: #63adf6;
+            block-size: 50px;
+            inline-size: 50px;
+            object-fit: contain;
+        }
+
+        .product-actions button {
+            inline-size: 35px;
+        }
+
+        .btn-delete {
+            border: none;
+            background: transparent;
+            color: #dc3545;
+        }
+
+        .list_toggle {
+            border-radius: 0 !important;
+            block-size: 95% !important;
+            transition: block-size 0.5s ease;
+        }
+
+        .interface_phone {
+            display: none;
+        }
+
+        @media only screen and (max-width: 900px) {
+            .interface_computer {
+                display: none;
+            }
+
+            .interface_phone {
+                z-index: 500;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                background-color: #ffffff;
+                block-size: 100% !important;
+            }
+
+            .par_camera {
+                position: relative;
+                background-color: rgb(227, 227, 227);
+                block-size: 30%;
+                inline-size: 100%;
+            }
+
+            .scanner-frame {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 60%;
+                height: 30%;
+                border: 2px solid red;
+                border-radius: 10px;
+            }
+
+            video {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+            .par_liste {
+                position: absolute;
+                display: flex;
+                flex-direction: column;
+                border-radius: 30px 30px 0 0;
+                background-color: rgb(255, 255, 255);
+                block-size: 80%;
+                inline-size: 100%;
+                inset-block-end: 5%;
+                transition: block-size 0.5s ease;
+            }
+
+            .header_list {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                block-size: 15%;
+                border-block-end: 0.1px solid #d5d5d599;
+                inline-size: 100%;
+                padding-inline: 10px;
+            }
+
+            .body_list {
+                background-color: rgb(255, 255, 255);
+                block-size: 85%;
+                inline-size: 100%;
+            }
+
+            .list-group-item {
+                block-size: 80px;
+                border-block-end: 0.1px solid #d5d5d599;
+            }
+
+            .containe_liste {
+                overflow: auto;
+                background-color: #fff;
+                padding-inline: 10px;
+            }
+
+            .icone_scan {
+                position: absolute;
+                block-size: 200px;
+                inline-size: 200px;
+                inset-block-start: 25%;
+                inset-inline-start: 25%;
+                opacity: 0.6;
+            }
+
+            .price_phone {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-radius: 20px;
+                margin: 2px;
+                block-size: 40px;
+                inline-size: 210px;
+            }
+
+            .btn_scan {
+                margin: 2px;
+                background-color: hsl(300deg 5.88% 96.67%) !important;
+                inline-size: 100px !important;
+            }
+
+            .btn_achat {
+                position: fixed;
+                border-radius: 10px;
+                background-color: #63adf6 !important;
+                block-size: 50px;
+                color: white;
+                font-size: 18px;
+                font-weight: 500;
+                inline-size: 90%;
+                inset-block-end: 12%;
+            }
+        }
+    </style>
 </head>
+
 <body>
+    <div class="v-card">
+        <div class="interface_phone">
+            <div class="par_camera">
+                <video id="video" autoplay muted playsinline></video>
+                <div class="scanner-frame"></div>
+            </div>
 
-  <h1>Scanner Code-Barres</h1>
-  <div id="scanner-container"></div>
+            <div class="par_liste">
+                <div class="header_list">
+                    <div class="btn btn-light btn_scan">Scan</div>
+                    <div class="price_phone">
+                        <span class="Nbre_article"><i class="fa-solid fa-cart-plus"></i> : 5</span>
+                        <span class="somme_phone"><i class="fa-solid fa-coins"></i> : 5000 F</span>
+                    </div>
+                </div>
 
-  <div id="product-info">
-    <p><strong>Code :</strong> <span id="code">Aucun</span></p>
-    <p><strong>Nom :</strong> <span id="name">-</span></p>
-    <p><strong>Marque :</strong> <span id="brand">-</span></p>
-  </div>
+                <div class="body_list">
+                    <div class="h-75 containe_liste">
+                        <img class="img-fluid icone_scan" src="../../../img/scan.svg" alt="" height="50" width="50">
+                    </div>
+                </div>
+            </div>
 
-  <button id="toggle-button">Activer caméra</button>
+            <button class="btn btn-primary btn_achat z-2" disabled="true">Valider l'Achat</button>
+        </div>
+    </div>
 
-  <script src="https://unpkg.com/@ericblade/quagga2/dist/quagga.min.js"></script>
-  <script>
-    const toggleButton = document.getElementById("toggle-button");
-    const codeSpan = document.getElementById("code");
-    const nameSpan = document.getElementById("name");
-    const brandSpan = document.getElementById("brand");
+    <script>
+        const btn_scan = document.querySelector('.btn_scan');
+        const par_liste = document.querySelector('.par_liste');
+        const par_camera = document.querySelector('.par_camera');
+        const containe_liste = document.querySelector('.containe_liste');
+        const icone_scan = document.querySelector('.icone_scan');
+        const video = document.getElementById('video');
 
-    let isRunning = false;
-    let lastCode = null;
-    let cooldown = false;
+        let scanner;
+        let scanning = false;
 
-    function fetchProduct(code) {
-      fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.status === 1) {
-            codeSpan.textContent = code;
-            nameSpan.textContent = data.product.product_name || "Inconnu";
-            brandSpan.textContent = data.product.brands || "Inconnue";
-          } else {
-            codeSpan.textContent = code;
-            nameSpan.textContent = "Produit introuvable";
-            brandSpan.textContent = "-";
-          }
-        }).catch(() => {
-          nameSpan.textContent = "Erreur de récupération";
+        btn_scan.addEventListener('click', async function () {
+            par_liste.classList.toggle('list_toggle');
+
+            if (!scanning) {
+                scanner = new ZXing.BrowserBarcodeReader();
+                try {
+                    scanning = true;
+                    const result = await scanner.decodeOnceFromVideoDevice(undefined, 'video');
+                    if (result) {
+                        const div = document.createElement('div');
+                        div.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-center');
+                        div.innerHTML = `<span class='Name_prod'>Code : ${result.text}</span>`;
+                        containe_liste.appendChild(div);
+                        icone_scan.style.display = 'none';
+                    }
+                } catch (e) {
+                    console.error(e);
+                } finally {
+                    scanner.reset();
+                    scanning = false;
+                }
+            } else {
+                scanner.reset();
+                scanning = false;
+            }
         });
-    }
-
-    function startScanner() {
-      Quagga.init({
-        inputStream: {
-          name: "Live",
-          type: "LiveStream",
-          target: document.querySelector("#scanner-container"),
-          constraints: {
-            facingMode: "environment"
-          }
-        },
-        decoder: {
-          readers: ["ean_reader", "ean_8_reader", "code_128_reader"]
-        },
-        locate: true
-      }, err => {
-        if (err) {
-          console.error(err);
-          alert("Impossible de démarrer la caméra. Vérifie les permissions et utilise HTTPS.");
-          return;
-        }
-        Quagga.start();
-        isRunning = true;
-        toggleButton.textContent = "Désactiver caméra";
-      });
-
-      Quagga.onDetected(result => {
-        const code = result.codeResult.code;
-        if (code && code !== lastCode && !cooldown) {
-          lastCode = code;
-          cooldown = true;
-          fetchProduct(code);
-          setTimeout(() => cooldown = false, 2000); // évite les doublons trop rapides
-        }
-      });
-    }
-
-    function stopScanner() {
-      Quagga.stop();
-      isRunning = false;
-      toggleButton.textContent = "Activer caméra";
-      codeSpan.textContent = "Aucun";
-      nameSpan.textContent = "-";
-      brandSpan.textContent = "-";
-    }
-
-    toggleButton.addEventListener("click", () => {
-      if (!isRunning) {
-        startScanner();
-      } else {
-        stopScanner();
-      }
-    });
-  </script>
+    </script>
 </body>
+
 </html>
